@@ -51,6 +51,10 @@ class DataArguments:
         default=False,
         metadata={"help": "Whether or not to disable the mask on the prompt."},
     )
+    train_on_video_tokens: bool = field(
+        default=False,
+        metadata={"help": "Whether or not to include video tokens in the loss computation."},
+    )
     mask_history: bool = field(
         default=False,
         metadata={"help": "Whether or not to mask the history and train on the last turn only."},

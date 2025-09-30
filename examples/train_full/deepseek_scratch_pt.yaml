@@ -1,0 +1,39 @@
+# examples/train_full/deepseek_scratch_pt.yaml
+model_name_or_path: /home/hardik/slm/deepseek_no_MoE     # your folder with config+tokenizer(+random weights)
+stage: pt                                      # <— pre-training
+do_train: true
+
+flash_attn: fa2
+optim: adamw_torch_fused
+
+dataloader_pin_memory: true
+dataloader_persistent_workers: true
+max_grad_norm: 1.0
+# torch_compile: true
+
+
+# data
+dataset: deepseek_pretrain          # defined in data/dataset_info.json
+cutoff_len: 1024
+packing: true
+overwrite_cache: false
+preprocessing_num_workers: 8
+dataloader_num_workers: 16
+
+plot_loss: true
+
+
+# training
+finetuning_type: full                          # full-param (you can also try lora for constrained VRAM)
+per_device_train_batch_size: 48
+gradient_accumulation_steps: 8
+learning_rate: 1e-4
+weight_decay: 0.01
+lr_scheduler_type: cosine
+warmup_ratio: 0.001
+num_train_epochs: 3.0      # or use max_steps: 200000
+bf16: true                 # or fp16 depending on GPU
+gradient_checkpointing: true
+logging_steps: 200
+save_steps: 1000
+output_dir: /home/hardik/slm/checkpoints/deepseek_scratch_pt_lf

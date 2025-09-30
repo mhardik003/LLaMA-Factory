@@ -405,6 +405,7 @@ class BasePlugin(MMPluginMixin):
         return messages
 
     def process_token_ids(
+            # this function takes the labels as input, and then returns them as it is ?!?!?!
         self,
         input_ids: list[int],
         labels: Optional[list[int]],
@@ -415,7 +416,7 @@ class BasePlugin(MMPluginMixin):
         processor: Optional["MMProcessor"],
     ) -> tuple[list[int], Optional[list[int]]]:
         r"""Pre-process token ids after tokenization for VLMs."""
-        self._validate_input(processor, images, videos, audios)
+        self._validate_input(processor, images, videos, audios)  # 5 this just validates the inputs, the returned mm_inputs are not used ?!
         return input_ids, labels
 
     def get_mm_inputs(
@@ -1430,7 +1431,7 @@ class Qwen2VLPlugin(BasePlugin):
                         raise ValueError("Invalid image found in video frames.")
 
                 frames = video
-                fps_per_video.append(kwargs.get("video_fps", 2.0))
+                fps_per_video.append(kwargs.get("video_fps", 2.0)) # CAN SETUP THE VIDEO_FPS HERE
             else:
                 container = av.open(video, "r")
                 video_stream = next(stream for stream in container.streams if stream.type == "video")
@@ -1461,6 +1462,9 @@ class Qwen2VLPlugin(BasePlugin):
         audios: list["AudioInput"],
         processor: "MMProcessor",
     ) -> dict[str, "torch.Tensor"]:
+        # getting the multimodal input for qwen2 here
+        # TODO : will need to make changes in other model plugin also, if we need to make changes here
+
         image_processor: BaseImageProcessor = getattr(processor, "image_processor", None)
         mm_inputs = {}
         if len(images) != 0:
@@ -1479,10 +1483,17 @@ class Qwen2VLPlugin(BasePlugin):
                 video_fps=getattr(processor, "video_fps", 2.0),
                 video_maxlen=getattr(processor, "video_maxlen", 128),
             )
+
+            
             mm_inputs.update(image_processor(images=None, videos=video_data["videos"], return_tensors="pt"))
+
+            # some temporal information is being added here
+            # chatgpt : time duration per temporal patch (think of splitting the video into time segments).
+
             temporal_patch_size: int = getattr(image_processor, "temporal_patch_size", 2)
             if "second_per_grid_ts" in processor.model_input_names:
                 mm_inputs["second_per_grid_ts"] = [temporal_patch_size / fps for fps in video_data["fps_per_video"]]
+
 
         return mm_inputs
 
@@ -1519,7 +1530,11 @@ class Qwen2VLPlugin(BasePlugin):
                 )
                 num_image_tokens += 1
 
-            while VIDEO_PLACEHOLDER in content:
+            while VIDEO_PLACEHOLDER in content: # VIDEO_PLACEHOLDER is <video>
+                print("\n"*10)
+                print(f"self.video_token: {self.video_token}, num_video_tokens: {num_video_tokens}")
+
+                print("\n"*10)
                 video_seqlen = video_grid_thw[num_video_tokens].prod() // merge_length if self.expand_mm_tokens else 1
                 content = content.replace(
                     VIDEO_PLACEHOLDER, f"{self.start_token}{self.video_token * video_seqlen}{self.end_token}", 1

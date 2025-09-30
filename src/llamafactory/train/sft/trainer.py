@@ -83,6 +83,14 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
 
             self.compute_loss_func = dft_loss_func
 
+        if finetuning_args.use_only_motionvector_loss:
+            from ..trainer_utils import motionvector_loss_func
+            self.compute_loss_func = motionvector_loss_func
+
+        if finetuning_args.use_motionvector_crossentropy_loss:
+            from ..trainer_utils import motionvector_crossentropy_loss_func
+            self.compute_loss_func = motionvector_crossentropy_loss_func
+
     @override
     def create_optimizer(self) -> "torch.optim.Optimizer":
         if self.optimizer is None:
@@ -105,6 +113,9 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
 
     @override
     def compute_loss(self, model, inputs, *args, **kwargs):
+        # to make changes to the loss function
+        # if finetuning_args.use_new_loss:
+         # compute the new loss from the model and the input and then return it here
         return super().compute_loss(model, inputs, *args, **kwargs)
 
     @override
@@ -117,7 +128,6 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         **gen_kwargs,
     ) -> tuple[Optional[float], Optional["torch.Tensor"], Optional["torch.Tensor"]]:
         r"""Remove the prompt part in the generated tokens.
-
         Subclass and override to inject custom behavior.
         """
         if self.args.predict_with_generate:  # do not pass labels to model when generate
@@ -128,8 +138,15 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         loss, generated_tokens, _ = super().prediction_step(
             model, inputs, prediction_loss_only=prediction_loss_only, ignore_keys=ignore_keys, **gen_kwargs
         )
+
+        print("Generated tokens shape:", generated_tokens.shape if generated_tokens is not None else None)
+
         if generated_tokens is not None and self.args.predict_with_generate:
+            # Need to make the changes to mask only the text prompt now, not the visual tokens
+
             generated_tokens[:, : inputs["input_ids"].size(-1)] = self.processing_class.pad_token_id
+
+
             generated_tokens = generated_tokens.contiguous()
 
         return loss, generated_tokens, labels

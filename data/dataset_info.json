@@ -1,4 +1,40 @@
 {
+
+  "ssv2": {
+    "file_name": "/home/hardik/velociti-reasoning/ssv2_val_llamafactory_style.json",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "videos": "videos"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant"
+    }
+  },
+
+
+  "ssv2_check": {
+    "file_name": "/home/hardik/velociti-reasoning/temp_ssv2_val_llamafactory_style.json",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "videos": "videos"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant"
+    }
+  },
+
+  "deepseek_pretrain": {
+    "file_name": "/workspace/hardik/slm_data/final_corpus.jsonl",
+    "columns": { "prompt": "text" }
+  },
   "identity": {
     "file_name": "identity.json"
   },

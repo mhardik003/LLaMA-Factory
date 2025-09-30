@@ -263,7 +263,7 @@ def _get_preprocessed_dataset(
 
     if training_args.should_log:
         try:
-            print("eval example:" if is_eval else "training example:")
+            print("> eval example:" if is_eval else "> training example:")
             dataset_processor.print_data_example(next(iter(dataset)))
         except StopIteration:
             if stage == "pt":
@@ -312,7 +312,7 @@ def get_dataset(
         )
 
     with training_args.main_process_first(desc="pre-process dataset", local=(not data_args.data_shared_file_system)):
-        dataset = _get_preprocessed_dataset(
+        dataset = _get_preprocessed_dataset(   # 2 goes here
             dataset, data_args, training_args, stage, template, tokenizer, processor, is_eval=False
         )
         if isinstance(eval_dataset, dict):

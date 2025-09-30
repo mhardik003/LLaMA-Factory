@@ -41,8 +41,8 @@ class SupervisedDatasetProcessor(DatasetProcessor):
         audios: list["AudioInput"],
     ) -> tuple[list[int], list[int]]:
         messages = self.template.mm_plugin.process_messages(prompt + response, images, videos, audios, self.processor)
-        input_ids, labels = self.template.mm_plugin.process_token_ids(
-            [], [], images, videos, audios, self.tokenizer, self.processor
+        input_ids, labels = self.template.mm_plugin.process_token_ids(         # 4 getting stuck here
+            [], [], images, videos, audios, self.tokenizer, self.processor   # this is where we add the labels (which are IGNORE_INDEX as of now)
         )
         encoded_pairs = self.template.encode_multiturn(self.tokenizer, messages, system, tools)
         total_length = len(input_ids) + (1 if self.template.efficient_eos else 0)
@@ -61,7 +61,14 @@ class SupervisedDatasetProcessor(DatasetProcessor):
             total_length += source_len + target_len
 
             if self.data_args.train_on_prompt:
-                source_label = source_ids
+                source_label = source_ids 
+
+            elif self.data_args.train_on_video_tokens:
+                # want to use the video token too for loss calculation
+                # thus need to change the source_label
+                # HERE WE HAVE TO ADD THE MOTION VECTORS IDS TO BE COMPUTED
+                source_label = None  
+
             elif self.template.efficient_eos and turn_idx != 0:
                 source_label = [self.tokenizer.eos_token_id] + [IGNORE_INDEX] * (source_len - 1)
             else:
@@ -116,11 +123,23 @@ class SupervisedDatasetProcessor(DatasetProcessor):
 
     def print_data_example(self, example: dict[str, list[int]]) -> None:
         valid_labels = list(filter(lambda x: x != IGNORE_INDEX, example["labels"]))
-        print("input_ids:\n{}".format(example["input_ids"]))
-        print("inputs:\n{}".format(self.tokenizer.decode(example["input_ids"], skip_special_tokens=False)))
-        print("label_ids:\n{}".format(example["labels"]))
-        print(f"labels:\n{self.tokenizer.decode(valid_labels, skip_special_tokens=False)}")
+        # valid_labels = list(example["labels"])
+        print("Keys in the dataset example: {}".format(list(example.keys())))
+        print("Shape of attention_mask: {}".format(len(example["attention_mask"]))) if "attention_mask" in example else None
+        print("Shape of images: {}".format(len(example["images"]))) if ("images" in example and example['images'] is not None) else None
+        print("Shape of videos: {}".format(len(example["videos"]))) if ("videos" in example  and example['videos'] is not None) else None
+        print("Shape of input_ids: {}".format(len(example["input_ids"])))
+        print("Shape of labels: {}".format(len(example["labels"])))
 
+        # print("input_ids:\n{}".format(example["input_ids"]))
+        print("inputs:\n{}".format(self.tokenizer.decode(example["input_ids"], skip_special_tokens=False)))
+        # print("inputs:\n{}".format(self.tokenizer.decode(example["input_ids"], skip_special_tokens=True)))
+        
+        # print(f"labels:\n{self.tokenizer.decode(valid_labels, skip_special_tokens=False)}")
+        
+        print("label_ids:\n{}".format(example["labels"]))
+        print("videos:\n{}".format(example["videos"])) if ("videos" in example and example['videos'] is not None) else None
+        
 
 @dataclass
 class PackedSupervisedDatasetProcessor(SupervisedDatasetProcessor):

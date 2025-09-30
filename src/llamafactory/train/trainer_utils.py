@@ -648,6 +648,23 @@ def dft_loss_func(outputs, labels, num_items_in_batch=None):
     return loss
 
 
+def motionvector_loss_func(outputs, labels, ignore_index=-100,  num_items_in_batch=None):
+    # TODO: implement motionvector loss
+    # NOW THE OUTPUTS HAVE  [BOS] [IMG_TOK_1] [IMG_TOK_2] ... [IMG_TOK_N] "User:" "What" "is" "this?" "Assistant:" ...
+    # The labels will be made such that [BOS] [MV_IMG_TOK_1] [MV_IMG_TOK_2] ... [MV_IMG_TOK_N] "User:" "What" "is" "this?" "Assistant:" ...
+    # We only compute the loss on the [MV_IMG_TOK_1] ... [MV_IMG_TOK_N] part
+    
+    loss = 0
+    return loss
+
+
+def motionvector_crossentropy_loss_func(outputs, labels, num_items_in_batch=None):
+    # TODO: implement motionvector cross-entropy loss
+    loss = 0
+
+    return loss
+
+
 def _dft_cross_entropy(
     source: torch.Tensor,
     target: torch.Tensor,

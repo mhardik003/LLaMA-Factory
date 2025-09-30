@@ -23,9 +23,11 @@ import torch
 import torch.nn.functional as F
 from peft import PeftModel
 from transformers import DataCollatorForSeq2Seq
+import sys
 
 from ..extras.constants import AUDIO_PLACEHOLDER, IGNORE_INDEX, IMAGE_PLACEHOLDER
 from ..extras.packages import is_pillow_available
+from ..extras import logging
 
 
 if is_pillow_available():
@@ -83,6 +85,7 @@ def prepare_4d_attention_mask(attention_mask_with_indices: "torch.Tensor", dtype
 
 @dataclass
 class MultiModalDataCollatorForSeq2Seq(DataCollatorForSeq2Seq):
+    # would need to modify this 
     r"""Data collator that supports VLMs.
 
     Features should contain input_ids, attention_mask, labels, and optionally contain images, videos and audios.
@@ -90,6 +93,7 @@ class MultiModalDataCollatorForSeq2Seq(DataCollatorForSeq2Seq):
 
     template: Optional["Template"] = None
     processor: Optional["ProcessorMixin"] = None
+    print(">>>> Hello from Inside MultiModalDataCollatorForSeq2Seq")
 
     def __post_init__(self):
         if self.template is None:
@@ -120,6 +124,8 @@ class MultiModalDataCollatorForSeq2Seq(DataCollatorForSeq2Seq):
             batch_audlens.append(len(audios))
             batch_input_ids.append(feature["input_ids"])
 
+
+        # didn't understand this part much, taking lite for the time being, since any ways for our case, sum(batch_vidlens) > 0
         fake_input_ids = []
         if (
             self.template.mm_plugin.image_token is not None and sum(batch_imglens) == 0 and sum(batch_vidlens) == 0
@@ -180,6 +186,8 @@ class MultiModalDataCollatorForSeq2Seq(DataCollatorForSeq2Seq):
             for i, feature in enumerate(features):
                 feature["token_type_ids"] = token_type_ids[i]
 
+        # pass the features through the DataCollatorFroSeq2Seq
+        # this will pad input_ids, attention_mask, labels and token_type_ids (if any)
         features: dict[str, torch.Tensor] = super().__call__(features)
 
         if self.get_rope_func is not None:
@@ -190,6 +198,7 @@ class MultiModalDataCollatorForSeq2Seq(DataCollatorForSeq2Seq):
                 "attention_mask": (features["attention_mask"] >= 1).float(),
             }
             if "second_per_grid_ts" in mm_inputs:  # for qwen2vl
+                # no changes here i am assuming
                 rope_index_kwargs["second_per_grid_ts"] = mm_inputs.get("second_per_grid_ts")
             elif "video_second_per_grid" in mm_inputs:  # for qwen2.5 omni
                 rope_index_kwargs["second_per_grids"] = mm_inputs.get("video_second_per_grid")
@@ -206,6 +215,7 @@ class MultiModalDataCollatorForSeq2Seq(DataCollatorForSeq2Seq):
                     dim=-1
                 ).unsqueeze(-1)
             else:  # for qwen2vl
+                # no changes here i am assuming
                 features["position_ids"], features["rope_deltas"] = self.get_rope_func(**rope_index_kwargs)
 
         if (
@@ -229,6 +239,7 @@ class MultiModalDataCollatorForSeq2Seq(DataCollatorForSeq2Seq):
             features["position_ids"] = torch.arange(seq_length).long().repeat(bsz, 1)
             return {"data": features, "input_ids": features["input_ids"], "labels": features["labels"]}
 
+        print(features, flush=True)
         return features
 
 
@@ -236,11 +247,14 @@ class MultiModalDataCollatorForSeq2Seq(DataCollatorForSeq2Seq):
 class SFTDataCollatorWith4DAttentionMask(MultiModalDataCollatorForSeq2Seq):
     r"""Data collator for 4d attention mask."""
 
+    print(">>>> Hello from Inside SFTDataCollatorWith4DAttentionMask")
+
     block_diag_attn: bool = False
     attn_implementation: Literal["eager", "sdpa", "flash_attention_2"] = "eager"
     compute_dtype: "torch.dtype" = torch.float32
 
     def __call__(self, features: list[dict[str, Any]]) -> dict[str, "torch.Tensor"]:
+        logging.info_rank0(">>>> Hello from Inside SFTDataCollatorWith4DAttentionMask CALL FUNCTION", file=sys.stderr, flush=True)
         features = super().__call__(features)
         if self.block_diag_attn and self.attn_implementation != "flash_attention_2":
             features["attention_mask"] = prepare_4d_attention_mask(features["attention_mask"], self.compute_dtype)
