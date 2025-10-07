@@ -25,6 +25,9 @@
 
 
 
+```
+    Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
+```
 
 
 # THE MOST IMPORTANT THING
@@ -84,6 +87,7 @@ Is this the correct way to do it?
     * The current code removes all the parts of the prompt which has both text and visual tokens and then returns just the newly generated tokens
     * How do we pass the length of the visual tokens so we can add those vectors to the generated_tokens 
 * Need to add a linear layer to convert the visual tokens dimensions being output to the motion vector dimension.
+* Change the masking strategy in the dataloader
 
 
 

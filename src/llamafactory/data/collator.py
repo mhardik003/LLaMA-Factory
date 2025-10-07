@@ -23,11 +23,10 @@ import torch
 import torch.nn.functional as F
 from peft import PeftModel
 from transformers import DataCollatorForSeq2Seq
-import sys
 
 from ..extras.constants import AUDIO_PLACEHOLDER, IGNORE_INDEX, IMAGE_PLACEHOLDER
 from ..extras.packages import is_pillow_available
-from ..extras import logging
+
 
 
 if is_pillow_available():
@@ -239,7 +238,6 @@ class MultiModalDataCollatorForSeq2Seq(DataCollatorForSeq2Seq):
             features["position_ids"] = torch.arange(seq_length).long().repeat(bsz, 1)
             return {"data": features, "input_ids": features["input_ids"], "labels": features["labels"]}
 
-        print(features, flush=True)
         return features
 
 
@@ -254,7 +252,7 @@ class SFTDataCollatorWith4DAttentionMask(MultiModalDataCollatorForSeq2Seq):
     compute_dtype: "torch.dtype" = torch.float32
 
     def __call__(self, features: list[dict[str, Any]]) -> dict[str, "torch.Tensor"]:
-        logging.info_rank0(">>>> Hello from Inside SFTDataCollatorWith4DAttentionMask CALL FUNCTION", file=sys.stderr, flush=True)
+        # logging.info_rank0(">>>> Hello from Inside SFTDataCollatorWith4DAttentionMask CALL FUNCTION", file=sys.stderr, flush=True)
         features = super().__call__(features)
         if self.block_diag_attn and self.attn_implementation != "flash_attention_2":
             features["attention_mask"] = prepare_4d_attention_mask(features["attention_mask"], self.compute_dtype)
